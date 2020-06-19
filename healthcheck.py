@@ -20,7 +20,8 @@ def health_check(url):
 def send_alert(email, htmlPayload):
     # The mail addresses and password
     sender_address = "litecoin.notifier.bot@gmail.com"
-    sender_pass = "3360Ciccio"
+    # TODO: Pass password as argument
+    sender_pass = "password"
     receiver_address = email
     # Setup the MIME
     message = MIMEMultipart()
