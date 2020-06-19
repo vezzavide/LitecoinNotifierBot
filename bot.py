@@ -3,18 +3,23 @@ import logging
 import bitstamp.client
 from telegram.ext import (Updater, CommandHandler, ConversationHandler, MessageHandler, Filters)
 import pickle
+import http.server
+import socketserver
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+
 
 # Saves an object with the pickle module to the obj folder
 def save_obj(obj, name):
     with open('obj/' + name + '.pkl', 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
+
 # Loads an onject with the pickle module from the obj folder
 def load_obj(name ):
     with open('obj/' + name + '.pkl', 'rb') as f:
         return pickle.load(f)
+
 
 class Bot:
     # States for subscribing operation
@@ -34,7 +39,7 @@ class Bot:
         # self.logger.addHandler(file_logger)
         
         # TODO: insert token from command line
-        self.botToken = 'TOKEN'
+        self.botToken = '523550814:AAHun-6UKGr9h_33XN-Yf0G0W9P-rkIeRKw'
 
         # Bitstamp API polling period in seconds
         # IMPORTANT: do not exceed 1 request per second or your IP will be banned
@@ -104,7 +109,6 @@ class Bot:
         job_queue = self.updater.job_queue
         job = job_queue.run_repeating(self.litecoin_price_check, interval=5, first=0)
 
-
     def debug_command(self, bot, update, args):
         user_id = update.message.from_user.id
 
@@ -116,7 +120,6 @@ class Bot:
             update.message.reply_text("Debug enabled.")
         else:
             update.message.reply_text("Error: /debug argument must be either '0' or '1'")
-
 
     def startup(self, bot):
         self.log("Sending boot message to each subscribed user (if any)")
@@ -131,7 +134,6 @@ class Bot:
             message = "Current LTC price: *$" + "{:.2f}*".format(current_price)
             bot.send_message(chat_id=user_id, text=message, parse_mode=telegram.ParseMode.MARKDOWN)
             self.subscribed_users[user_id]["last_sent_price"] = current_price
-
 
     def status_command(self, bot, update):
         self.log_user_action(update, "Sent /status.")
@@ -148,16 +150,13 @@ class Bot:
 
         update.message.reply_text(message)
 
-
     def cancel(self, bot, update):
         update.message.reply_text("Alright, action canceled.")
         return ConversationHandler.END
 
-
     def log(self, text):
         if self.debug:
             print(text)
-
 
     def log_user_action(self, update, text):
         if self.debug:
@@ -200,7 +199,6 @@ class Bot:
         last_price = float(public_bitstamp_client.ticker(base=base, quote=quote)['last'])
         return last_price
 
-
     # /current_price command function
     def current_ltcusd_price(self, bot, update):
         user_id = update.message.from_user.id
@@ -209,7 +207,6 @@ class Bot:
         bot.send_message(chat_id=user_id, text=message, parse_mode=telegram.ParseMode.MARKDOWN)
         self.subscribed_users[user_id]["last_sent_price"] = current_price
         self.log_user_action(update, "Sent current price.")
-
 
     # /subscribe command to subscribe to the notification service
     def subscribe(self, bot, update):
@@ -256,7 +253,6 @@ class Bot:
 
         return ConversationHandler.END
 
-
     # Check if ltcusd increased or decreased and if the gap is bigger than notification_price_range, subscribed users
     # are notified
     def litecoin_price_check(self, bot, job):
@@ -288,7 +284,6 @@ class Bot:
 
         except Exception as e:
             self.log("Error in litecoin_price_check!" + e)
-
 
     def change_price_range_command(self, bot, update):
         self.log_user_action(update, "Sent /change_range.")
@@ -324,7 +319,6 @@ class Bot:
 
         return ConversationHandler.END
 
-
     def unsubscribe_command(self, bot, update):
         self.log_user_action(update, "Sent /unsubscribe")
         user_id = update.message.from_user.id
@@ -332,7 +326,6 @@ class Bot:
         update.message.reply_text("You successfully unsubscribed to my alert service!\n"
                                   + "Send /subscribe to start again.")
         self.log_user_action(update, "Unsubscribed")
-
 
     def run(self):
         self.updater.start_polling()
@@ -342,3 +335,9 @@ class Bot:
 if __name__ == '__main__':
     bot = Bot()
     bot.run()
+
+    PORT = 8000
+    Handler = http.server.SimpleHTTPRequestHandler
+    with socketserver.TCPServer(("", PORT), Handler) as httpd:
+        print("serving at port", PORT)
+        httpd.serve_forever()
